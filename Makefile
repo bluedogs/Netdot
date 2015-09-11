@@ -9,8 +9,8 @@ SRCROOT := $(shell pwd)
 PERL        ?= /usr/bin/perl
 PREFIX      ?= /usr/local/netdot
 STAGEDIR    ?= $(PREFIX)
-APACHEUSER  ?= www-data
-APACHEGROUP ?= www-data
+APACHEUSER  ?= apache
+APACHEGROUP ?= apache
 MAKE        ?= make
 SED         ?= sed
 usage:

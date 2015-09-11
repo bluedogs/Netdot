@@ -3,7 +3,6 @@ package Netdot::REST;
 use base qw( Netdot );
 use Netdot::Model;
 use XML::Simple;
-use JSON::XS;
 use Data::Dumper;
 use Apache2::Const -compile => qw(HTTP_FORBIDDEN HTTP_UNAUTHORIZED OK NOT_FOUND 
                                   HTTP_BAD_REQUEST HTTP_NOT_ACCEPTABLE);
@@ -128,7 +127,7 @@ sub handle_resource {
 			  $self->{request}->method, 
 			  $resource, 
 			  $self->{request}->args,
-			  $self->{request}->connection->client_ip,
+			  $self->remote_ip, 
 			  $headers->{'User-Agent'}
 		  ));
 
@@ -499,14 +498,6 @@ sub print_serialized {
 
 	print $xml;
     }
-    if ( $mtype eq 'json' ){
-        $self->_load_json_lib();
-        my $json = $self->{js}->encode ($data);
-        $self->{request}->content_type(q{text/json; charset=utf-8});
-	print '[';
-        print $json;
-	print ']';
-    }
 }
 
 ##################################################################
@@ -535,11 +526,6 @@ sub read_serialized {
 	$self->_load_xml_lib();
 	$self->{xs}->XMLin($string);
     }
-    if ( $mtype eq 'json' ){
-	$self->_load_json_lib();
-	$self->{js}->decode($string);
-    }
-
 }
 
 ##################################################################
@@ -557,7 +543,7 @@ sub read_serialized {
 sub check_accept_header{
     my ($self, $accept) = @_;
     $logger->debug(sprintf("Netdot::REST::handle_resource: %s, Accept: %s", 
-			   $self->{request}->connection->client_ip, $accept
+			   $self->remote_ip, $accept
 		   ));
     
     my @headers = split m/,(\s+)?/, $accept;
@@ -565,14 +551,6 @@ sub check_accept_header{
 	my ($mtype, $parameters) = split m/;(\s+)?/, $header;
 	if ( $mtype eq 'text/xml' || $mtype eq 'application/xml' ){
 	    $self->{media_type} = 'xml';
-	    if ( $parameters =~ /version=(\w+)/ ){
-		# This will be used in future versions of this API for backwards compatibility
-		$self->{version} = $1;
-	    }
-	    last;
-	}
-	if ( $mtype eq 'text/json' || $mtype eq 'application/json' ){
-	    $self->{media_type} = 'json';
 	    if ( $parameters =~ /version=(\w+)/ ){
 		# This will be used in future versions of this API for backwards compatibility
 		$self->{version} = $1;
@@ -605,6 +583,29 @@ sub check_accept_header{
 sub throw {
     my ($self, %args) = @_;
     return $self->SUPER::throw_rest(%args);
+}
+
+##################################################################
+
+=head2 remote_ip 
+    
+    Handle API differences between Apache versions
+    
+  Arguments: 
+    None
+  Returns:
+    Client IP (string)
+  Examples:
+    my $client_ip = $rest->remote_ip()
+=cut
+
+sub remote_ip {
+    my $self = shift;
+    if ($self->{request}->connection->can("remote_ip")) {
+        $self->{request}->connection->remote_ip;  # 2.2
+    } else {
+        $self->{request}->connection->client_ip;  # 2.4
+    }
 }
 
 ##################################################################
@@ -671,28 +672,6 @@ sub _load_xml_lib{
 	    );
     }
 }
-
-##################################################################
-# _load_json_lib - Load JSON library
-#    
-#  Instantiates JSON class if needed
-#
-#     Arguments:
-#        none
-#     Returns:
-#        Nothing
-#     Examples:
-#        $self->_load_json_lib();
-#
-sub _load_json_lib{
-    my ($self) = @_;
-
-    unless ( $self->{js} ){
-        $self->{js} = JSON::XS->new->ascii->pretty->allow_nonref;
-    }
-}
-
-
 
 =head1 AUTHORS
 
