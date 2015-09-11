@@ -3,6 +3,7 @@ package Netdot::REST;
 use base qw( Netdot );
 use Netdot::Model;
 use XML::Simple;
+use JSON::XS;
 use Data::Dumper;
 use Apache2::Const -compile => qw(HTTP_FORBIDDEN HTTP_UNAUTHORIZED OK NOT_FOUND 
                                   HTTP_BAD_REQUEST HTTP_NOT_ACCEPTABLE);
@@ -127,7 +128,7 @@ sub handle_resource {
 			  $self->{request}->method, 
 			  $resource, 
 			  $self->{request}->args,
-			  $self->remote_ip, 
+			  $self->remote_ip,
 			  $headers->{'User-Agent'}
 		  ));
 
@@ -498,6 +499,14 @@ sub print_serialized {
 
 	print $xml;
     }
+    if ( $mtype eq 'json' ){
+        $self->_load_json_lib();
+        my $json = $self->{js}->encode ($data);
+        $self->{request}->content_type(q{text/json; charset=utf-8});
+	print '[';
+        print $json;
+	print ']';
+    }
 }
 
 ##################################################################
@@ -526,6 +535,11 @@ sub read_serialized {
 	$self->_load_xml_lib();
 	$self->{xs}->XMLin($string);
     }
+    if ( $mtype eq 'json' ){
+	$self->_load_json_lib();
+	$self->{js}->decode($string);
+    }
+
 }
 
 ##################################################################
@@ -551,6 +565,14 @@ sub check_accept_header{
 	my ($mtype, $parameters) = split m/;(\s+)?/, $header;
 	if ( $mtype eq 'text/xml' || $mtype eq 'application/xml' ){
 	    $self->{media_type} = 'xml';
+	    if ( $parameters =~ /version=(\w+)/ ){
+		# This will be used in future versions of this API for backwards compatibility
+		$self->{version} = $1;
+	    }
+	    last;
+	}
+	if ( $mtype eq 'text/json' || $mtype eq 'application/json' ){
+	    $self->{media_type} = 'json';
 	    if ( $parameters =~ /version=(\w+)/ ){
 		# This will be used in future versions of this API for backwards compatibility
 		$self->{version} = $1;
@@ -672,6 +694,28 @@ sub _load_xml_lib{
 	    );
     }
 }
+
+##################################################################
+# _load_json_lib - Load JSON library
+#    
+#  Instantiates JSON class if needed
+#
+#     Arguments:
+#        none
+#     Returns:
+#        Nothing
+#     Examples:
+#        $self->_load_json_lib();
+#
+sub _load_json_lib{
+    my ($self) = @_;
+
+    unless ( $self->{js} ){
+        $self->{js} = JSON::XS->new->ascii->pretty->allow_nonref;
+    }
+}
+
+
 
 =head1 AUTHORS
 
