@@ -27,6 +27,7 @@ my %DERIVED_CLASSES = (
     'CiscoCat'  => ['Netdot::Model::Device::CLI::CiscoCat',  'Netdot::Model::Device'],
     'FoundryIW' => ['Netdot::Model::Device::CLI::FoundryIW', 'Netdot::Model::Device'],
     'Airespace' => ['Netdot::Model::Device::Airespace',      'Netdot::Model::Device'],
+    'HuaweiVRP'  => ['Netdot::Model::Device::CLI::HuaweiVRP',  'Netdot::Model::Device'],
     );
 
 # Some private class data and related methods
