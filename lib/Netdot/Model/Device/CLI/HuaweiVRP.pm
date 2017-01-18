@@ -243,7 +243,7 @@ sub _get_fwt_from_cli {
     my $args = $self->_get_credentials(host=>$host);
     return unless ref($args) eq 'HASH';
 
-    my @output = $self->_cli_cmd(%$args, host=>$host, cmd=>'show mac-address-table dynamic');
+    my @output = $self->_cli_cmd(%$args, host=>$host, cmd=>'disp mac-address dynamic');
 
     # MAP interface names to IDs
     my %int_names;
