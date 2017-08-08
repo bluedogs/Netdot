@@ -36,6 +36,7 @@ Netdot::Exporter - Base class and object factory for Netdot exports
 
   Arguments:
     type - Netdot::Exporter type (Nagios|Sysmon|Rancid)
+    subclass arguments
   Returns:
     Netdot::Exporter object
   Examples:
@@ -47,14 +48,13 @@ sub new{
     my $class = ref($proto) || $proto;
     my $self = {};
     
-    if ( $argv{type} ) { 
-	my $subclass = $types{$argv{type}} ||
-	    $class->throw_user("Netdot::Exporter::new: Unknown Exporter type: $argv{type}");
+    my $type = delete $argv{type};
+
+    if ( $type ) { 
+	my $subclass = $types{$type} ||
+	    $class->throw_user("Netdot::Exporter::new: Unknown Exporter type: $type");
 	eval "use $subclass;";
-	if ( my $e = $@ ){
-	    $class->throw_user($e);
-	}
-	$self = $subclass->new();
+	$self = $subclass->new(%argv);
     }else {
 	bless $self, $class;
     }
@@ -69,7 +69,8 @@ sub new{
 All device information needed for building monitoring configurations
 
   Arguments:
-    None
+    Hash with following keys:
+     site (str) - Name of site to filter (defaults to all sites)
   Returns:
     Hash reference where key=device.id
   Examples:
@@ -77,20 +78,23 @@ All device information needed for building monitoring configurations
 =cut
 
 sub get_device_info {
-    my ($self) = @_;
-    
-    return $self->cache('exporter_device_info')	if $self->cache('exporter_device_info');
+    my ($self, %argv) = @_;
+
+    # Don't cache if asked to filter by site
+    unless (exists $argv{site}){
+	return $self->cache('exporter_device_info')	if $self->cache('exporter_device_info');
+    }
 
     my %device_info;
     $logger->debug("Netdot::Exporter::get_device_info: querying database");
 
     my $dbh = Netdot::Model->db_Main();
-    my $rows = $dbh->selectall_arrayref("
+    my $query = "
           SELECT    d.id, d.snmp_managed, d.community, d.snmp_target, d.host_device,
                     d.monitoring_template, d.down_from, d.down_until, entity.name, entity.aliases,
                     p.name, ptype.name, manuf.name,
                     site.name, site.number, site.aliases, contactlist.id,
-                    i.id, i.number, i.name, i.description, i.admin_status, i.monitored, i.contactlist,
+                    i.id, i.number, i.name, i.description, i.admin_status, i.monitored, i.contactlist, i.speed,
                     ip.id, ip.address, ip.version, ip.parent, ip.monitored, rr.name, zone.name,
                     service.id, service.name, ipservice.monitored, ipservice.contactlist,
                     bgppeering.bgppeeraddr, bgppeering.contactlist, peer.asnumber, peer.asname
@@ -114,8 +118,17 @@ sub get_device_info {
                AND  i.device=d.id                  
                AND  d.name=rr.id 
                AND  rr.zone=zone.id
-         ");
+         ";
     
+    $query .= " AND site.name=?" if exists $argv{site};
+    my $sth = $dbh->prepare($query);
+    if ($argv{site}){
+	$sth->execute($argv{site});
+    }else{
+	$sth->execute();
+    }
+
+    my $rows = $sth->fetchall_arrayref();
     $logger->debug("Netdot::Exporter::get_device_info: building data structure");
     foreach my $row ( @$rows ){
 
@@ -123,7 +136,7 @@ sub get_device_info {
 	    $mon_template, $down_from, $down_until, $entity_name, $entity_alias, 
 	    $pname, $ptype, $manuf,
 	    $site_name, $site_number, $site_alias, $clid,
-	    $intid, $intnumber, $intname, $intdesc, $intadmin, $intmon, $intcl,
+	    $intid, $intnumber, $intname, $intdesc, $intadmin, $intmon, $intcl, $intspeed,
 	    $ip_id, $ip_addr, $ip_version, $subnet, $ip_mon, $name, $zone,
 	    $srv_id, $srv_name, $srv_mon, $srv_cl,
 	    $peer_addr, $peer_cl, $peer_asn, $peer_asname) = @$row;
@@ -156,6 +169,7 @@ sub get_device_info {
 	$device_info{$devid}{interface}{$intid}{admin}        = $intadmin;
 	$device_info{$devid}{interface}{$intid}{monitored}    = $intmon;
 	$device_info{$devid}{interface}{$intid}{contactlist}  = $intcl;
+	$device_info{$devid}{interface}{$intid}{speed}        = $intspeed;
 	if ( defined $ip_id ){
 	    $device_info{$devid}{interface}{$intid}{ip}{$ip_id}{addr}      = $ip_addr;
 	    $device_info{$devid}{interface}{$intid}{ip}{$ip_id}{version}   = $ip_version;
@@ -173,7 +187,11 @@ sub get_device_info {
 	}
     }
     
-    return $self->cache('exporter_device_info', \%device_info);
+    # Don't cache if asked to filter by site
+    unless (exists $argv{site}){
+	$self->cache('exporter_device_info', \%device_info);
+    }
+    return \%device_info;
 }
 
 
