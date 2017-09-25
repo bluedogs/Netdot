@@ -5134,26 +5134,6 @@ sub _validate_arp {
 
     my %valid;
     foreach my $idx ( keys %$cache ){
-<<<<<<< HEAD
-    	my $intid = $devints{$idx} if exists $devints{$idx};
-    	unless ( $intid  ){
-    		$logger->warn("Device::_validate_arp: $host: Interface $idx not in database. Skipping");
-    		next;
-    	}
-    	foreach my $ip ( keys %{$cache->{$idx}} ){
-    		if ( $version == 6 && Ipblock->is_link_local($ip) &&
-    			Netdot->config->get('IGNORE_IPV6_LINK_LOCAL') ){
-    			next;
-    		}
-    		my $mac = $cache->{$idx}->{$ip};
-    		my $validmac = PhysAddr->validate($mac); 
-    		unless ( $validmac ){
-    			$logger->debug(sub{"Device::_validate_arp: $host: Invalid MAC: $mac" });
-    			next;
-    		}
-    		$mac = $validmac;
-    		if ( $ign_non_subnet ){
-=======
 	my $intid = $devints{$idx} if exists $devints{$idx};
 	unless ( $intid  ){
 	    $logger->warn("Device::_validate_arp: $host: Interface $idx not in database. Skipping");
@@ -5173,7 +5153,6 @@ sub _validate_arp {
 		next;
 	    }
 	    if ( $ign_non_subnet ){
->>>>>>> 85e78c3d135f63536990071af68d44f97a4c9d46
 		# This check does not work with link-local, so if user wants those
 		# just validate them
 		if ( $version == 6 && Ipblock->is_link_local($ip) ){
@@ -5422,37 +5401,6 @@ sub _walk_fwt {
 	
     # Clean up here to avoid repeating these checks in each loop above
     foreach my $iid ( keys %tmp ){
-<<<<<<< HEAD
-    	my $descr = $sints->{$iid};
-    	unless ( defined $descr ) {
-    		$logger->debug(
-    			sub{"Device::_walk_fwt: $host: SNMP iid $iid has no physical port matching. Skipping" });
-    		next;
-    	}
-    	
-    	my $intid = $devints->{$iid} if exists $devints->{$iid};
-    	unless ( $intid  ){
-    		$logger->warn("Device::_walk_fwt: $host: Interface $iid ($descr) is not in database. Skipping");
-    		next;
-    	}
-    	
-    	foreach my $mac ( keys %{ $tmp{$iid} } ){
-    		next unless $mac;
-    		my $validmac = PhysAddr->validate($mac);
-    		if ( $validmac ){
-    			$mac = $validmac;
-    			}else{
-    				$logger->debug(sub{"Device::_walk_fwt: $host: Invalid MAC: $mac" });
-    				next;
-    			}
-    			$fwt->{$intid}->{$mac} = 1;
-    			$logger->debug(sub{"Device::_walk_fwt: $host: $iid ($descr) -> $mac" });
-    		}
-    		
-    	}
-
-    	return 1;
-=======
 	my $descr = $sints->{$iid};
 	unless ( defined $descr ) {
 	    $logger->debug(
@@ -5478,7 +5426,6 @@ sub _walk_fwt {
 	    $logger->debug(sub{"Device::_walk_fwt: $host: $iid ($descr) -> $mac" });
 	}
 	
->>>>>>> 85e78c3d135f63536990071af68d44f97a4c9d46
     }
 
 #########################################################################
@@ -5775,26 +5722,6 @@ sub _munge_speed_high {
 #
 sub _assign_base_mac {
 	my ($self, $info) = @_;
-
-<<<<<<< HEAD
-	my $host = $self->fqdn;
-	my $address = delete $info->{physaddr};
-	if ( $address && ($address = PhysAddr->validate($address)) ) {
-	# OK
-	}else{
-		$logger->debug(sub{"$host does not provide a valid base MAC.".
-			" Using first available interface MAC."});
-		foreach my $iid ( sort { $a <=> $b}  keys %{$info->{interface}} ){
-			if ( my $addr = $info->{interface}->{$iid}->{physaddr} ){
-				next unless ($address = PhysAddr->validate($addr));
-				last;
-			}
-		}
-	}
-	unless ( $address ){
-		$logger->debug("$host: No suitable MAC address found");
-		return;
-=======
     my $host = $self->fqdn;
     my $address = delete $info->{physaddr};
     eval {
@@ -5815,8 +5742,7 @@ sub _assign_base_mac {
 		    last;
 		}
 	    }
->>>>>>> 85e78c3d135f63536990071af68d44f97a4c9d46
-	}
+    }
     # Look it up
     my $mac;
     if ( $mac = PhysAddr->search(address=>$address)->first ){
