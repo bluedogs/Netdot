@@ -5426,7 +5426,7 @@ sub _walk_fwt {
           $logger->debug(sub{"Device::_walk_fwt: $host: $iid ($descr) -> $mac" });
       }
 
-  }
+      
 
 #########################################################################
 # Run given code within TIMEOUT time
@@ -5725,25 +5725,25 @@ sub _assign_base_mac {
     my $host = $self->fqdn;
     my $address = delete $info->{physaddr};
     eval {
-       $address = PhysAddr->validate($address);
-   };
-   if ( my $e = $@ ){
-       $logger->debug(sub{"$host: Invalid MAC: $e"});
-       $logger->debug(sub{"$host: Using first available interface MAC"});
-       foreach my $iid ( sort { $a <=> $b}  keys %{$info->{interface}} ){
-           if ( my $addr = $info->{interface}->{$iid}->{physaddr} ){
-              eval {
-                  $address = PhysAddr->validate($addr);
-              };
-              if ( my $e = $@ ){
-                  $logger->debug(sub{"$host: Invalid MAC: $e"});
-                  next;
-                  }else{
-                      last;
-                  }
+     $address = PhysAddr->validate($address);
+ };
+ if ( my $e = $@ ){
+     $logger->debug(sub{"$host: Invalid MAC: $e"});
+     $logger->debug(sub{"$host: Using first available interface MAC"});
+     foreach my $iid ( sort { $a <=> $b}  keys %{$info->{interface}} ){
+         if ( my $addr = $info->{interface}->{$iid}->{physaddr} ){
+          eval {
+              $address = PhysAddr->validate($addr);
+          };
+          if ( my $e = $@ ){
+              $logger->debug(sub{"$host: Invalid MAC: $e"});
+              next;
+              }else{
+                  last;
               }
           }
       }
+  }
     # Look it up
     my $mac;
     if ( $mac = PhysAddr->search(address=>$address)->first ){
