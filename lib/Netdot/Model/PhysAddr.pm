@@ -250,7 +250,7 @@ sub validate {
     if ( $addr !~ /^[0-9A-F]{12}$/ ){
 	$class->throw_user("$displ has illegal chars or size");
     }
-    elsif ( $addr =~ /^([0-9A-F]{1})/o && $addr =~ /$1{12}/ ){
+    elsif ( $addr =~ /^([1-9A-F]{1})/o && $addr =~ /$1{12}/ ){
 	# Assume the all-equal-bits address is invalid
 	$class->throw_user("$displ looks bogus", $displ);
     }
