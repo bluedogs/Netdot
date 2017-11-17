@@ -265,9 +265,9 @@ sub validate {
 	$class->throw_user("$displ is HSRP");
     }
     elsif ( hex(substr($addr, 1, 1)) & 1  ){
-	$class->throw_user("$displ is multicast.");
+		#$class->throw_user("$displ is multicast.");
     }
-    elsif ( $addr =~ /^([0-9A-E]{2})/ && $1 =~ /.(1|3|5|7|9|B|D)/ ){
+    elsif ( $addr =~ /^([0-9A-F]{2})/ && $1 =~ /.(1|3|5|7|9|B|D!F)/ ){
 	$class->throw_user("$displ is multicast");
     }
     elsif ( scalar(my @list = @{$class->config->get('IGNORE_MAC_PATTERNS')}) ){
