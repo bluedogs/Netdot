@@ -6227,6 +6227,7 @@ sub _walk_fwt {
     my %tmp;
 
     # Try BRIDGE mib stuff first, then REPEATER mib
+<<<<<<< HEAD
     if ( my $fw_mac = $sinfo->fw_mac() ) {
 
         my $fw_port  = $sinfo->fw_port();
@@ -6271,6 +6272,56 @@ sub _walk_fwt {
             $tmp{$iid}{$mac} = 1;
         }
 
+=======
+    if ( my $fw_mac = $sinfo->fw_mac() ){
+	
+	my $fw_port    = $sinfo->fw_port();
+	my $bp_index   = $sinfo->bp_index();
+	
+	# To map the port in the forwarding table to the
+	# physical device port we have this triple indirection:
+	#      fw_port -> bp_index -> interfaces
+	
+	foreach my $fw_index ( keys %$fw_mac ){
+
+	    my $mac = $fw_mac->{$fw_index};
+	    unless ( $mac ) {
+		$logger->debug(
+		    sub{"Device::_walk_fwt: $host: MAC not defined at index $fw_index. Skipping" });
+		next;
+	    }
+
+	    my $bp_id  = $fw_port->{$fw_index};
+	    unless ( $bp_id ) {
+		$logger->debug(
+		    sub{"Device::_walk_fwt: $host: Port $fw_index has no fw_port mapping. Skipping" });
+		next;
+	    }
+	    
+	    my $iid = $bp_index->{$bp_id};
+	    unless ( $iid ) {
+		$logger->debug(
+		    sub{"Device::_walk_fwt: $host: Interface $bp_id has no bp_index mapping. Skipping" });
+		next;
+	    }
+	    
+	    $tmp{$iid}{$mac} = 1;
+	}
+    
+    }elsif ( my $last_src = $sinfo->rptrAddrTrackNewLastSrcAddress() ){
+	
+	foreach my $iid ( keys %{ $last_src } ){
+	    my $mac = $last_src->{$iid};
+	    unless ( defined $mac ) {
+		$logger->debug(
+		    sub{"Device::_walk_fwt: $host: MAC not defined at rptr index $iid. Skipping" });
+		next;
+	    }
+	    
+	    $tmp{$iid}{$mac} = 1;
+	}
+	    
+>>>>>>> 099ae9836596705d09e7db1737629a0366ad88d5
     }
     elsif ( my $last_src = $sinfo->rptrAddrTrackNewLastSrcAddress() ) {
 
